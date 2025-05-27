@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Incheon Adventure</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Helvetica Neue', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #ffeef8 0%, #f0f9ff 50%, #f5f3ff 100%);
+            min-height: 100vh;
+            color: #1f2937;
+            overflow-x: hidden;
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            min-height: 100vh;
+            padding: 20px;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        .screen-transition {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            0% { opacity: 0; transform: translateX(50px); }
+            100% { opacity: 1; transform: translateX(0); }
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            position: relative;
+        }
+
+        .question-title {
+            font-size: 22px;
+            font-weight: 400;
+            color: #374151;
+            margin-bottom: 32px;
+            line-height: 1.3;
+            letter-spacing: -0.3px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 24px;
+            font-weight: 400;
+        }
+
+        .button-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .choice-btn {
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 182, 193, 0.2);
+            border-radius: 12px;
+            padding: 18px 24px;
+            font-size: 15px;
+            font-weight: 500;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 15px rgba(255, 182, 193, 0.08);
+            position: relative;
+            overflow: hidden;
+            letter-spacing: 0.1px;
+        }
+
+        .choice-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .choice-btn:hover::before {
+            left: 100%;
+        }
+
+        .choice-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(255, 182, 193, 0.15);
+            border-color: rgba(255, 182, 193, 0.4);
+            background: rgba(255, 255, 255, 1);
+        }
+
+        .choice-btn.selected {
+            background: linear-gradient(135deg, rgba(255, 182, 193, 0.9), rgba(255, 220, 230, 0.9));
+            border-color: rgba(255, 182, 193, 0.7);
+            color: #ffffff;
+            transform: scale(1.01);
+        }
+
+        .decorative-elements {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .floating-petal {
+            position: absolute;
+            width: 8px;
+            height: 20px;
+            background: linear-gradient(to top, rgba(255, 182, 193, 0.6), rgba(255, 255, 255, 0.8));
+            border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+            animation: float 8s ease-in-out infinite;
+            filter: blur(0.5px);
+        }
+
+        .floating-petal:nth-child(1) {
+            top: 20%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .floating-petal:nth-child(2) {
+            top: 60%;
+            right: 15%;
+            animation-delay: 2s;
+        }
+
+        .floating-petal:nth-child(3) {
+            bottom: 30%;
+            left: 20%;
+            animation-delay: 4s;
+        }
+
+        .floating-marble {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(255, 182, 193, 0.4));
+            border-radius: 50%;
+            animation: marble 10s ease-in-out infinite;
+            box-shadow: 0 2px 10px rgba(255, 182, 193, 0.3);
+        }
+
+        .floating-marble:nth-child(4) {
+            top: 40%;
+            left: 5%;
+            animation-delay: 1s;
+        }
+
+        .floating-marble:nth-child(5) {
+            bottom: 20%;
+            right: 10%;
+            animation-delay: 3s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px) rotate(0deg);
+                opacity: 0.6;
+            }
+            50% {
+                transform: translateY(-20px) rotate(180deg);
+                opacity: 1;
+            }
+        }
+
+        @keyframes marble {
+            0%, 100% {
+                transform: translateY(0px) translateX(0px);
+                opacity: 0.7;
+            }
+            33% {
+                transform: translateY(-15px) translateX(10px);
+                opacity: 1;
+            }
+            66% {
+                transform: translateY(-5px) translateX(-5px);
+                opacity: 0.8;
+            }
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 3px;
+            background: linear-gradient(90deg, #ff6b9d, #ffc0cb, #e6e6fa);
+            transition: width 0.5s ease;
+            z-index: 1000;
+        }
+
+        .airport-header {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            color: #6b7280;
+            letter-spacing: 0.3px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 14px;
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 182, 193, 0.2);
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 60px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(255, 182, 193, 0.3);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+            color: #6b7280;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: scale(1.05);
+        }
+
+        .final-screen {
+            text-align: center;
+        }
+
+        .final-title {
+            font-size: 24px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 16px;
+            line-height: 1.2;
+        }
+
+        .final-subtitle {
+            font-size: 15px;
+            color: #6b7280;
+            margin-bottom: 32px;
+            font-weight: 400;
+        }
+
+        .start-adventure-btn {
+            background: linear-gradient(135deg, #ff6b9d, #ffc0cb);
+            border: none;
+            border-radius: 20px;
+            padding: 14px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 25px rgba(255, 107, 157, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .start-adventure-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 35px rgba(255, 107, 157, 0.4);
+        }
+
+        .camera-container {
+            position: relative;
+            width: 100%;
+            height: 60vh;
+            border-radius: 20px;
+            overflow: hidden;
+            margin: 20px 0;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #camera-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .camera-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 200px;
+            height: 200px;
+            border: 3px solid rgba(255, 255, 255, 0.7);
+            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+            text-align: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 480px) {
+            .question-title {
+                font-size: 20px;
+            }
+            
+            .choice-btn {
+                padding: 16px 20px;
+                font-size: 14px;
+            }
+            
+            .container {
+                padding: 0 10px;
+            }
+            
+            .airport-header {
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="airport-header">Incheon International Airport</div>
+    <div class="progress-bar" id="progress-bar"></div>
+    
+    <div class="decorative-elements">
+        <div class="floating-petal"></div>
+        <div class="floating-petal"></div>
+        <div class="floating-petal"></div>
+        <div class="floating-marble"></div>
+        <div class="floating-marble"></div>
+    </div>
+
+    <!-- SCREEN 1: Travel Purpose -->
+    <div class="screen active" id="screen-1">
+        <div class="container">
+            <h1 class="question-title">Are you traveling for<br>Business or Pleasure?</h1>
+            <div class="button-grid">
+                <button class="choice-btn" onclick="selectPurpose('business')">
+                    Business
+                </button>
+                <button class="choice-btn" onclick="selectPurpose('pleasure')">
+                    Pleasure
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 2: Companions -->
+    <div class="screen" id="screen-2">
+        <button class="back-btn" onclick="goBack()">←</button>
+        <div class="container">
+            <h1 class="question-title">Who are you<br>traveling with?</h1>
+            <div class="button-grid" id="companion-options">
+                <!-- Options will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 3: Current Feeling -->
+    <div class="screen" id="screen-3">
+        <button class="back-btn" onclick="goBack()">←</button>
+        <div class="container">
+            <h1 class="question-title">How do you<br>feel right now?</h1>
+            <div class="button-grid">
+                <button class="choice-btn" onclick="selectFeeling('tired')">
+                    Tired
+                </button>
+                <button class="choice-btn" onclick="selectFeeling('bored')">
+                    Bored
+                </button>
+                <button class="choice-btn" onclick="selectFeeling('adventurous')">
+                    Adventurous
+                </button>
+                <button class="choice-btn" onclick="selectFeeling('stressed')">
+                    Stressed
+                </button>
+                <button class="choice-btn" onclick="selectFeeling('rest')">
+                    Need Rest
+                </button>
+                <button class="choice-btn" onclick="selectFeeling('excited')">
+                    Excited
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 4: Start Adventure -->
+    <div class="screen" id="screen-4">
+        <button class="back-btn" onclick="goBack()">←</button>
+        <div class="container final-screen">
+            <h1 class="final-title">Perfect!</h1>
+            <p class="final-subtitle">인천국제공항 어드벤처를<br>떠나볼까요?</p>
+            <button class="start-adventure-btn" onclick="startCamera()">
+                Start Adventure
+            </button>
+        </div>
+    </div>
+
+    <!-- SCREEN 5: Camera Adventure -->
+    <div class="screen" id="screen-5">
+        <button class="back-btn" onclick="goBack()">←</button>
+        <div class="container">
+            <h1 class="question-title">Find Hidden Treasures!</h1>
+            <div class="camera-container">
+                <video id="camera-feed" autoplay playsinline></video>
+                <div class="camera-overlay">
+                    <div>
+                        Point your camera<br>
+                        to discover hidden<br>
+                        treasures around you!
+                    </div>
+                </div>
+            </div>
+            <p class="subtitle">Move around and explore the airport to find special items!</p>
+        </div>
+    </div>
+
+    <script>
+        let currentScreen = 1;
+        let userChoices = {};
+        
+        const screenHistory = [1];
+
+        function updateProgress() {
+            const progress = ((currentScreen - 1) / 4) * 100;
+            document.getElementById('progress-bar').style.width = progress + '%';
+        }
+
+        function showScreen(screenNumber) {
+            document.querySelectorAll('.screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+            
+            const targetScreen = document.getElementById(`screen-${screenNumber}`);
+            targetScreen.classList.add('active');
+            targetScreen.classList.add('screen-transition');
+            
+            setTimeout(() => {
+                targetScreen.classList.remove('screen-transition');
+            }, 500);
+            
+            currentScreen = screenNumber;
+            updateProgress();
+        }
+
+        function selectPurpose(purpose) {
+            userChoices.purpose = purpose;
+            
+            // Clear previous selection
+            document.querySelectorAll('#screen-1 .choice-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            
+            // Mark selected
+            event.target.classList.add('selected');
+            
+            // Populate companion options based on purpose
+            const companionOptions = document.getElementById('companion-options');
+            companionOptions.innerHTML = '';
+            
+            if (purpose === 'business') {
+                const options = [
+                    { key: 'alone', text: 'Alone' },
+                    { key: 'colleagues', text: 'Colleagues' }
+                ];
+                
+                options.forEach(option => {
+                    const btn = document.createElement('button');
+                    btn.className = 'choice-btn';
+                    btn.textContent = option.text;
+                    btn.onclick = () => selectCompanion(option.key);
+                    companionOptions.appendChild(btn);
+                });
+            } else {
+                const options = [
+                    { key: 'alone', text: 'Alone' },
+                    { key: 'couple', text: 'Couple' },
+                    { key: 'family', text: 'Family' },
+                    { key: 'friends', text: 'Friends' },
+                    { key: 'colleagues', text: 'Colleagues' }
+                ];
+                
+                options.forEach(option => {
+                    const btn = document.createElement('button');
+                    btn.className = 'choice-btn';
+                    btn.textContent = option.text;
+                    btn.onclick = () => selectCompanion(option.key);
+                    companionOptions.appendChild(btn);
+                });
+            }
+            
+            setTimeout(() => {
+                screenHistory.push(2);
+                showScreen(2);
+            }, 300);
+        }
+
+        function selectCompanion(companion) {
+            userChoices.companion = companion;
+            
+            // Mark selected
+            document.querySelectorAll('#screen-2 .choice-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+            
+            setTimeout(() => {
+                screenHistory.push(3);
+                showScreen(3);
+            }, 300);
+        }
+
+        function selectFeeling(feeling) {
+            userChoices.feeling = feeling;
+            
+            // Mark selected
+            document.querySelectorAll('#screen-3 .choice-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            event.target.classList.add('selected');
+            
+            setTimeout(() => {
+                screenHistory.push(4);
+                showScreen(4);
+            }, 300);
+        }
+
+        function startCamera() {
+            screenHistory.push(5);
+            showScreen(5);
+            
+            // Request camera permission and start video
+            navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    facingMode: 'environment' // Use back camera on mobile
+                } 
+            })
+            .then(stream => {
+                const video = document.getElementById('camera-feed');
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                console.error('Error accessing camera:', err);
+                document.querySelector('.camera-overlay div').innerHTML = 
+                    '📷 Camera access denied<br>Please enable camera<br>permissions to continue';
+            });
+        }
+
+        function goBack() {
+            if (screenHistory.length > 1) {
+                screenHistory.pop(); // Remove current screen
+                const previousScreen = screenHistory[screenHistory.length - 1];
+                showScreen(previousScreen);
+            }
+        }
+
+        // Initialize
+        updateProgress();
+
+        // Add touch feedback for mobile
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.classList.contains('choice-btn')) {
+                e.target.style.transform = 'scale(0.98)';
+            }
+        });
+
+        document.addEventListener('touchend', function(e) {
+            if (e.target.classList.contains('choice-btn')) {
+                e.target.style.transform = '';
+            }
+        });
+    </script>
+</body>
+</html>
